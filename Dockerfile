@@ -1,8 +1,17 @@
 FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
+# Prevent composer from hitting the 512 MB Render build RAM cap
+ENV COMPOSER_MEMORY_LIMIT=-1
 
-# ── PHP 8.2 + MongoDB from Ondrej PPA (pre-compiled .deb, zero PECL compilation) ──
+# ── PHP 8.2 + all extensions required by Laravel + MongoDB ──────────────────
+# ext-ctype, filter, hash, iconv, json, phar, session, tokenizer → php8.2-common
+# ext-dom, libxml, xml, xmlwriter                               → php8.2-xml
+# ext-curl                                                       → php8.2-curl
+# ext-fileinfo                                                   → php8.2-fileinfo
+# ext-mbstring                                                   → php8.2-mbstring
+# ext-mongodb                                                    → php8.2-mongodb
+# ext-zip                                                        → php8.2-zip
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       ca-certificates gnupg software-properties-common curl git unzip \
@@ -10,21 +19,32 @@ RUN apt-get update \
  && apt-get update \
  && apt-get install -y --no-install-recommends \
       php8.2-cli \
+      php8.2-common \
       php8.2-curl \
+      php8.2-fileinfo \
       php8.2-mbstring \
-      php8.2-xml \
-      php8.2-zip \
       php8.2-mongodb \
       php8.2-opcache \
+      php8.2-xml \
+      php8.2-zip \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/*
 
-# ── Node.js 20 ──
+# Fail fast if any critical extension is missing (shows the name in build logs)
+RUN php -r "
+  \$need = ['mongodb','mbstring','curl','dom','xml','fileinfo','ctype','tokenizer','json'];
+  \$miss = array_filter(\$need, fn(\$e) => !extension_loaded(\$e));
+  if (\$miss) { echo 'MISSING extensions: '.implode(', ',\$miss).PHP_EOL; exit(1); }
+  echo 'All extensions OK'.PHP_EOL;
+"
+
+# ── Node.js 20 ───────────────────────────────────────────────────────────────
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
  && apt-get install -y nodejs \
+ && apt-get clean \
  && rm -rf /var/lib/apt/lists/*
 
-# ── Composer ──
+# ── Composer ─────────────────────────────────────────────────────────────────
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /app
@@ -39,8 +59,6 @@ RUN npm ci
 
 # Application source
 COPY . .
-
-# Build Vite/React assets
 RUN npm run build
 
 # Writable Laravel dirs
