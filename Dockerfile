@@ -48,18 +48,18 @@ RUN npm ci
 # Full application (artisan now present)
 COPY . .
 
-# Run the deferred post-autoload hook now that artisan is available
-RUN php artisan package:discover --ansi
-
-# Build Vite/React assets
-RUN npm run build
-
-# Writable Laravel dirs
+# Create storage dirs excluded by .dockerignore — must exist before any artisan call
 RUN mkdir -p storage/logs \
              storage/framework/cache \
              storage/framework/sessions \
              storage/framework/views \
  && chmod -R 775 storage bootstrap/cache
+
+# Run the deferred post-autoload hook
+RUN php artisan package:discover --ansi
+
+# Build Vite/React assets
+RUN npm run build
 
 EXPOSE 8000
 
