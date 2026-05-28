@@ -42,7 +42,7 @@ WORKDIR /app
 # IS present and loads fine at runtime (php artisan boots correctly).
 COPY composer.json composer.lock ./
 RUN composer install --no-dev --optimize-autoloader --no-interaction \
-      --ignore-platform-req=ext-mongodb
+      --ignore-platform-reqs
 
 # Node deps
 COPY package.json package-lock.json ./
