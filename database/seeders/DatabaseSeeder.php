@@ -12,6 +12,12 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        // Skip entirely if already seeded (idempotent for repeated container restarts)
+        if (User::where('email', 'judge1@icmis.test')->exists()) {
+            $this->command->info('Demo data already seeded — skipping.');
+            return;
+        }
+
         // ─── 1. Court ─────────────────────────────────────────
         $court = Court::firstOrCreate(
             ['code' => 'DLH-DC-01'],

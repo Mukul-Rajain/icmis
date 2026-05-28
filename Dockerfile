@@ -4,7 +4,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV COMPOSER_MEMORY_LIMIT=-1
 
 # Cache-bust arg — increment to force a clean apt layer on Render
-ARG CACHE_BUST=2
+ARG CACHE_BUST=3
 
 # ── PHP 8.2 + all Laravel-required extensions via Ondrej PPA ─────────────────
 RUN apt-get update \
@@ -67,4 +67,5 @@ CMD ["sh", "-c", \
   "php artisan storage:link --no-interaction 2>/dev/null || true && \
    php artisan route:cache 2>/dev/null || true && \
    php artisan view:cache  2>/dev/null || true && \
+   php artisan db:seed --class=DatabaseSeeder --force 2>/dev/null || true && \
    php artisan serve --host=0.0.0.0 --port=${PORT:-8000}"]
