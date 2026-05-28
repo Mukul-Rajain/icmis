@@ -1,37 +1,40 @@
-FROM php:8.2-cli-alpine
+FROM php:8.2-cli
 
-# Build deps for PHP extensions
-RUN apk add --no-cache \
-    autoconf gcc g++ make \
-    oniguruma-dev libxml2-dev openssl-dev pcre-dev \
-    nodejs npm git
+# System deps (Debian-based — far more reliable for PECL compilation)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git curl unzip \
+    libssl-dev libcurl4-openssl-dev \
+    libonig-dev libxml2-dev libzip-dev \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
+    && rm -rf /var/lib/apt/lists/*
 
-# MongoDB PHP extension (PECL)
+# MongoDB PHP extension
 RUN pecl install mongodb && docker-php-ext-enable mongodb
 
-# Standard PHP extensions Laravel needs
-RUN docker-php-ext-install mbstring xml opcache
+# Core PHP extensions Laravel needs
+RUN docker-php-ext-install mbstring xml zip opcache
 
 # Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /app
 
-# PHP deps — layer-cached separately from app code
+# PHP deps (layer-cached)
 COPY composer.json composer.lock ./
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
-# Node deps — layer-cached separately
+# Node deps (layer-cached)
 COPY package.json package-lock.json ./
 RUN npm ci
 
-# Full application (including storage/app/seeded/)
+# Application code + storage/app/seeded/
 COPY . .
 
-# Build React/Vite assets
-RUN npm run build && npm prune --production
+# Build React/Vite frontend assets
+RUN npm run build
 
-# Ensure writable dirs exist with correct permissions
+# Writable storage dirs
 RUN mkdir -p storage/logs \
              storage/framework/cache \
              storage/framework/sessions \
@@ -40,5 +43,9 @@ RUN mkdir -p storage/logs \
 
 EXPOSE 8000
 
-# At startup: cache routes+views then serve
-CMD ["sh", "-c", "php artisan storage:link --no-interaction 2>/dev/null; php artisan route:cache; php artisan view:cache; php artisan serve --host=0.0.0.0 --port=${PORT:-8000}"]
+# || true on artisan commands so a cache miss never prevents the server starting
+CMD ["sh", "-c", \
+  "php artisan storage:link --no-interaction 2>/dev/null || true && \
+   php artisan route:cache 2>/dev/null || true && \
+   php artisan view:cache  2>/dev/null || true && \
+   php artisan serve --host=0.0.0.0 --port=${PORT:-8000}"]
