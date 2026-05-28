@@ -90,25 +90,25 @@ class DatabaseSeeder extends Seeder
         $regId    = (string) $registry->_id;
         $year     = now()->year;
 
-        // [title, type, track, status, judgeId, daysAgo, nextInDays, causeListPos]
+        // [title, type, track, status, judgeId, daysAgo, nextInDays (0=today), causeListPos]
         $rows = [
-            ['Sharma vs. Mehta — Specific Performance',     'civil',      'regular', CourtCase::STATUS_SCHEDULED,       $j1, 45,  5, 3],
-            ['State vs. Raju Kumar — Criminal Assault',     'criminal',   'urgent',  CourtCase::STATUS_SCHEDULED,       $j1, 12,  2, 1],
-            ['Gupta Family — Partition Suit',               'family',     'regular', CourtCase::STATUS_ADJOURNED,       $j2, 90, 14, 5],
+            ['Sharma vs. Mehta — Specific Performance',     'civil',      'regular', CourtCase::STATUS_SCHEDULED,       $j1, 45,  0, 3],
+            ['State vs. Raju Kumar — Criminal Assault',     'criminal',   'urgent',  CourtCase::STATUS_SCHEDULED,       $j1, 12,  0, 1],
+            ['Gupta Family — Partition Suit',               'family',     'regular', CourtCase::STATUS_ADJOURNED,       $j2, 90,  0, 5],
             ['TechCorp vs. FinServe — Commercial Dispute',  'commercial', 'fast',    CourtCase::STATUS_HEARD,           $j2, 30, null, null],
-            ['Malhotra Writ — Unlawful Termination',        'writ',       'fast',    CourtCase::STATUS_SCHEDULED,       $j3, 20,  3, 2],
+            ['Malhotra Writ — Unlawful Termination',        'writ',       'fast',    CourtCase::STATUS_SCHEDULED,       $j3, 20,  0, 2],
             ['Singh vs. Singh — Matrimonial',               'family',     'regular', CourtCase::STATUS_UNDER_SCRUTINY, null,  3, null, null],
             ['Defective Filing — Missing Affidavit',        'civil',      'regular', CourtCase::STATUS_DEFECTIVE,      null,  7, null, null],
             ['Draft Case — Not Yet Submitted',              'civil',       null,     CourtCase::STATUS_DRAFT,          null,  1, null, null],
-            ['State vs. Accused — Bail Application',        'criminal',   'urgent',  CourtCase::STATUS_SCHEDULED,       $j1,  5,  1, 2],
-            ['Consumer Forum Appeal — Defective Goods',     'commercial', 'fast',    CourtCase::STATUS_RESERVED,        $j3, 60, null, null],
+            ['State vs. Accused — Bail Application',        'criminal',   'urgent',  CourtCase::STATUS_SCHEDULED,       $j1,  5,  0, 2],
+            ['Consumer Forum Appeal — Defective Goods',     'commercial', 'fast',    CourtCase::STATUS_SCHEDULED,       $j3, 60,  0, 1],
         ];
 
         foreach ($rows as $i => [$title, $type, $track, $status, $judgeId, $daysAgo, $nextInDays, $position]) {
             $seq        = str_pad($i + 1, 5, '0', STR_PAD_LEFT);
             $caseNumber = $status !== CourtCase::STATUS_DRAFT
                 ? "DLH-DC-01/{$type}/{$year}/{$seq}" : null;
-            $nextHearing = $nextInDays ? now()->addDays($nextInDays) : null;
+            $nextHearing = ($nextInDays !== null) ? now()->addDays($nextInDays) : null;
 
             CourtCase::create([
                 'case_number'                => $caseNumber,
