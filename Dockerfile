@@ -36,20 +36,22 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /app
 
-# PHP deps
-# --ignore-platform-req=ext-mongodb: the extension INI is wired up by apt but
-# Composer's build-time platform probe can't dlopen it in this env. The .so
-# IS present and loads fine at runtime (php artisan boots correctly).
+# PHP deps — skip post-autoload scripts here; artisan doesn't exist yet
 COPY composer.json composer.lock ./
 RUN composer install --no-dev --optimize-autoloader --no-interaction \
-      --ignore-platform-reqs
+      --ignore-platform-reqs --no-scripts
 
 # Node deps
 COPY package.json package-lock.json ./
 RUN npm ci
 
-# Application source
+# Full application (artisan now present)
 COPY . .
+
+# Run the deferred post-autoload hook now that artisan is available
+RUN php artisan package:discover --ansi
+
+# Build Vite/React assets
 RUN npm run build
 
 # Writable Laravel dirs
