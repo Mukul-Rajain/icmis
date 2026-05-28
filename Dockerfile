@@ -1,21 +1,30 @@
-FROM php:8.2-cli
+FROM ubuntu:22.04
 
-# System deps (Debian-based — far more reliable for PECL compilation)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    git curl unzip \
-    libssl-dev libcurl4-openssl-dev \
-    libonig-dev libxml2-dev libzip-dev \
-    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
-    && apt-get install -y nodejs \
-    && rm -rf /var/lib/apt/lists/*
+ENV DEBIAN_FRONTEND=noninteractive
 
-# MongoDB PHP extension
-RUN pecl install mongodb && docker-php-ext-enable mongodb
+# ── PHP 8.2 + MongoDB from Ondrej PPA (pre-compiled .deb, zero PECL compilation) ──
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      ca-certificates gnupg software-properties-common curl git unzip \
+ && add-apt-repository -y ppa:ondrej/php \
+ && apt-get update \
+ && apt-get install -y --no-install-recommends \
+      php8.2-cli \
+      php8.2-curl \
+      php8.2-mbstring \
+      php8.2-xml \
+      php8.2-zip \
+      php8.2-mongodb \
+      php8.2-opcache \
+ && apt-get clean \
+ && rm -rf /var/lib/apt/lists/*
 
-# Core PHP extensions Laravel needs
-RUN docker-php-ext-install mbstring xml zip opcache
+# ── Node.js 20 ──
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+ && apt-get install -y nodejs \
+ && rm -rf /var/lib/apt/lists/*
 
-# Composer
+# ── Composer ──
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /app
@@ -28,22 +37,21 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction
 COPY package.json package-lock.json ./
 RUN npm ci
 
-# Application code + storage/app/seeded/
+# Application source
 COPY . .
 
-# Build React/Vite frontend assets
+# Build Vite/React assets
 RUN npm run build
 
-# Writable storage dirs
+# Writable Laravel dirs
 RUN mkdir -p storage/logs \
              storage/framework/cache \
              storage/framework/sessions \
              storage/framework/views \
-    && chmod -R 775 storage bootstrap/cache
+ && chmod -R 775 storage bootstrap/cache
 
 EXPOSE 8000
 
-# || true on artisan commands so a cache miss never prevents the server starting
 CMD ["sh", "-c", \
   "php artisan storage:link --no-interaction 2>/dev/null || true && \
    php artisan route:cache 2>/dev/null || true && \
