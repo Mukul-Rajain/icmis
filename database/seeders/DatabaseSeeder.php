@@ -12,12 +12,6 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // Skip entirely if already seeded (idempotent for repeated container restarts)
-        if (User::where('email', 'judge1@icmis.test')->exists()) {
-            $this->command->info('Demo data already seeded — skipping.');
-            return;
-        }
-
         // ─── 1. Court ─────────────────────────────────────────
         $court = Court::firstOrCreate(
             ['code' => 'DLH-DC-01'],
@@ -82,7 +76,11 @@ class DatabaseSeeder extends Seeder
             'filer_profile' => ['type' => 'litigant', 'phone' => '+91-9810005678'],
         ]);
 
-        // ─── 5. Sample cases ──────────────────────────────────
+        // ─── 5. Cases — always truncate so dates stay fresh ───
+        // next_hearing_date must be today for scheduledToday() to show them on the
+        // judge dashboard. Truncating on every deploy keeps the demo data current.
+        CourtCase::truncate();
+
         $lawyerId = (string) $lawyer->_id;
         $j1       = (string) $judges[0]->_id;
         $j2       = (string) $judges[1]->_id;
@@ -90,23 +88,23 @@ class DatabaseSeeder extends Seeder
         $regId    = (string) $registry->_id;
         $year     = now()->year;
 
-        // [title, type, track, status, judgeId, daysAgo, nextInDays (0=today), causeListPos]
+        // [title, type, track, status, judgeId, daysAgo, nextInDays (0=today/null=none), pos]
         $rows = [
-            ['Sharma vs. Mehta — Specific Performance',     'civil',      'regular', CourtCase::STATUS_SCHEDULED,       $j1, 45,  0, 3],
-            ['State vs. Raju Kumar — Criminal Assault',     'criminal',   'urgent',  CourtCase::STATUS_SCHEDULED,       $j1, 12,  0, 1],
-            ['Gupta Family — Partition Suit',               'family',     'regular', CourtCase::STATUS_ADJOURNED,       $j2, 90,  0, 5],
-            ['TechCorp vs. FinServe — Commercial Dispute',  'commercial', 'fast',    CourtCase::STATUS_HEARD,           $j2, 30, null, null],
-            ['Malhotra Writ — Unlawful Termination',        'writ',       'fast',    CourtCase::STATUS_SCHEDULED,       $j3, 20,  0, 2],
-            ['Singh vs. Singh — Matrimonial',               'family',     'regular', CourtCase::STATUS_UNDER_SCRUTINY, null,  3, null, null],
-            ['Defective Filing — Missing Affidavit',        'civil',      'regular', CourtCase::STATUS_DEFECTIVE,      null,  7, null, null],
-            ['Draft Case — Not Yet Submitted',              'civil',       null,     CourtCase::STATUS_DRAFT,          null,  1, null, null],
-            ['State vs. Accused — Bail Application',        'criminal',   'urgent',  CourtCase::STATUS_SCHEDULED,       $j1,  5,  0, 2],
-            ['Consumer Forum Appeal — Defective Goods',     'commercial', 'fast',    CourtCase::STATUS_SCHEDULED,       $j3, 60,  0, 1],
+            ['Sharma vs. Mehta — Specific Performance',    'civil',      'regular', CourtCase::STATUS_SCHEDULED,       $j1, 45,  0, 3],
+            ['State vs. Raju Kumar — Criminal Assault',    'criminal',   'urgent',  CourtCase::STATUS_SCHEDULED,       $j1, 12,  0, 1],
+            ['Gupta Family — Partition Suit',              'family',     'regular', CourtCase::STATUS_ADJOURNED,       $j2, 90,  0, 1],
+            ['TechCorp vs. FinServe — Commercial Dispute', 'commercial', 'fast',    CourtCase::STATUS_HEARD,           $j2, 30, null, null],
+            ['Malhotra Writ — Unlawful Termination',       'writ',       'fast',    CourtCase::STATUS_SCHEDULED,       $j3, 20,  0, 2],
+            ['Singh vs. Singh — Matrimonial',              'family',     'regular', CourtCase::STATUS_UNDER_SCRUTINY, null,  3, null, null],
+            ['Defective Filing — Missing Affidavit',       'civil',      'regular', CourtCase::STATUS_DEFECTIVE,      null,  7, null, null],
+            ['Draft Case — Not Yet Submitted',             'civil',       null,     CourtCase::STATUS_DRAFT,          null,  1, null, null],
+            ['State vs. Accused — Bail Application',       'criminal',   'urgent',  CourtCase::STATUS_SCHEDULED,       $j1,  5,  0, 2],
+            ['Consumer Forum Appeal — Defective Goods',    'commercial', 'fast',    CourtCase::STATUS_SCHEDULED,       $j3, 60,  0, 1],
         ];
 
         foreach ($rows as $i => [$title, $type, $track, $status, $judgeId, $daysAgo, $nextInDays, $position]) {
-            $seq        = str_pad($i + 1, 5, '0', STR_PAD_LEFT);
-            $caseNumber = $status !== CourtCase::STATUS_DRAFT
+            $seq         = str_pad($i + 1, 5, '0', STR_PAD_LEFT);
+            $caseNumber  = $status !== CourtCase::STATUS_DRAFT
                 ? "DLH-DC-01/{$type}/{$year}/{$seq}" : null;
             $nextHearing = ($nextInDays !== null) ? now()->addDays($nextInDays) : null;
 
@@ -137,24 +135,24 @@ class DatabaseSeeder extends Seeder
                 'expected_disposal_date'     => now()->addMonths(rand(2, 12)),
                 'parties' => [
                     [
-                        'party_type'       => 'petitioner',
-                        'name'             => "Petitioner " . ($i + 1),
-                        'user_id'          => null,
-                        'address'          => '123 Demo Street, New Delhi - 110001',
-                        'is_senior_citizen'=> $i % 4 === 0,
-                        'is_in_custody'    => $type === 'criminal' && $i % 2 === 0,
+                        'party_type'        => 'petitioner',
+                        'name'              => "Petitioner " . ($i + 1),
+                        'user_id'           => null,
+                        'address'           => '123 Demo Street, New Delhi - 110001',
+                        'is_senior_citizen' => $i % 4 === 0,
+                        'is_in_custody'     => $type === 'criminal' && $i % 2 === 0,
                     ],
                     [
-                        'party_type'       => 'respondent',
-                        'name'             => "Respondent " . ($i + 1),
-                        'user_id'          => null,
-                        'address'          => '456 Demo Avenue, New Delhi - 110002',
-                        'is_senior_citizen'=> false,
-                        'is_in_custody'    => false,
+                        'party_type'        => 'respondent',
+                        'name'              => "Respondent " . ($i + 1),
+                        'user_id'           => null,
+                        'address'           => '456 Demo Avenue, New Delhi - 110002',
+                        'is_senior_citizen' => false,
+                        'is_in_custody'     => false,
                     ],
                 ],
                 'lawyers'  => [['user_id' => $lawyerId, 'representing' => 'petitioner', 'is_lead' => true]],
-                'documents'=> $status !== CourtCase::STATUS_DRAFT ? [[
+                'documents' => $status !== CourtCase::STATUS_DRAFT ? [[
                     'doc_id'      => (string) Str::uuid(),
                     'label'       => 'Plaint / Petition',
                     'file_path'   => 'seeded/placeholder.pdf',
@@ -164,14 +162,14 @@ class DatabaseSeeder extends Seeder
                     'is_verified' => true,
                 ]] : [],
                 'scrutiny' => $status === CourtCase::STATUS_DEFECTIVE ? [
-                    'reviewed_by'   => $regId,
-                    'reviewed_at'   => now()->subDays(2)->toIso8601String(),
-                    'approved_at'   => null,
-                    'defect_flags'  => [
+                    'reviewed_by'    => $regId,
+                    'reviewed_at'    => now()->subDays(2)->toIso8601String(),
+                    'approved_at'    => null,
+                    'defect_flags'   => [
                         ['code' => 'MISSING_AFFIDAVIT',  'label' => 'Affidavit of verification missing', 'resolved' => false],
-                        ['code' => 'INCOMPLETE_ADDRESS', 'label' => 'Respondent address incomplete',    'resolved' => false],
+                        ['code' => 'INCOMPLETE_ADDRESS', 'label' => 'Respondent address incomplete',     'resolved' => false],
                     ],
-                    'rejection_note'=> 'Please attach the required affidavit and complete respondent address.',
+                    'rejection_note' => 'Please attach the required affidavit and complete respondent address.',
                 ] : ['defect_flags' => [], 'reviewed_by' => null, 'approved_at' => null],
                 'hearings'            => [],
                 'mentioning_requests' => $i === 2 ? [[
@@ -196,6 +194,6 @@ class DatabaseSeeder extends Seeder
             ['Lawyer',   'lawyer@icmis.test',   'password'],
             ['Litigant', 'litigant@icmis.test', 'password'],
         ]);
-        $this->command->info("\nCreated 10 demo cases across all statuses. Run: php artisan serve");
+        $this->command->info("\nSeeded 10 demo cases (today's hearings on judge dashboards).");
     }
 }
