@@ -30,13 +30,8 @@ RUN apt-get update \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/*
 
-# Fail fast if any critical extension is missing (shows the name in build logs)
-RUN php -r "
-  \$need = ['mongodb','mbstring','curl','dom','xml','fileinfo','ctype','tokenizer','json'];
-  \$miss = array_filter(\$need, fn(\$e) => !extension_loaded(\$e));
-  if (\$miss) { echo 'MISSING extensions: '.implode(', ',\$miss).PHP_EOL; exit(1); }
-  echo 'All extensions OK'.PHP_EOL;
-"
+# Fail fast if any critical extension is missing
+RUN php -r '$e=["mongodb","mbstring","curl","dom","xml","fileinfo","ctype","tokenizer","json"];$m=array_filter($e,fn($x)=>!extension_loaded($x));if($m){echo"MISSING: ".implode(",",$m)."\n";exit(1);}echo"All extensions OK\n";'
 
 # ── Node.js 20 ───────────────────────────────────────────────────────────────
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
