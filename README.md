@@ -66,9 +66,9 @@ routes/                  # web.php, api.php
 
 ## Build Phases
 
-- **Phase 1** ✅ Foundation: auth, roles, users, base UI
-- **Phase 2** ✅ Case management core: registration, parties, documents
-- **Phase 3** ✅ DCFM engine: TrackClassifier + PriorityScorer
+- **Phase 1** Foundation: auth, roles, users, base UI
+- **Phase 2** Case management core: registration, parties, documents
+- **Phase 3** DCFM engine: TrackClassifier + PriorityScorer
 - **Phase 4** Cause list generation with conflict detection
 - **Phase 5** Hearings, adjournments, notifications
 - **Phase 6** Dashboards & analytics
