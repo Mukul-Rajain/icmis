@@ -4,7 +4,7 @@
 
 ---
 
-## ⚡ Fastest Path (SQLite, no MySQL needed)
+## Fastest Path (SQLite, no MySQL needed)
 
 ### Prerequisites
 
@@ -102,7 +102,7 @@ You'll see the login page. Use `admin@dcfm.test` / `password`.
 
 ---
 
-## 🎬 Demo Flow for Your Presentation
+## Demo Flow for Your Presentation
 
 Once logged in as admin:
 
@@ -115,7 +115,7 @@ Once logged in as admin:
 
 ---
 
-## 🔑 All Demo Logins
+## All Demo Logins
 
 | Role | Email | Password | What they see |
 |------|-------|----------|---------------|
@@ -127,7 +127,7 @@ Once logged in as admin:
 
 ---
 
-## 🐛 Troubleshooting
+##  Troubleshooting
 
 ### "php: command not found"
 PHP isn't installed or isn't in your PATH. Install it (see Prerequisites above).
@@ -180,7 +180,7 @@ Then create the database in MySQL (`CREATE DATABASE dcfm_court;`) and run `php a
 
 ---
 
-## 📁 What's In This Zip
+## What's In This Zip
 
 ```
 dcfm-court-laravel/
@@ -193,7 +193,7 @@ dcfm-court-laravel/
 │   ├── Notifications/    ← Email notifications for hearings/adjournments
 │   └── Services/         ← 6 service classes (the brain of DCFM)
 │       ├── TrackClassifier.php       ← Rule-based fast/standard/complex
-│       ├── PriorityScorer.php        ← Weighted score formula ⭐
+│       ├── PriorityScorer.php        ← Weighted score formula 
 │       ├── CauseListGenerator.php    ← Smart hearing ordering
 │       ├── DelayPredictor.php        ← Flags at-risk cases
 │       ├── CaseRegistrationService.php
@@ -211,7 +211,7 @@ dcfm-court-laravel/
 
 ---
 
-## ❓ Need Help?
+##  Need Help?
 
 If you hit any error, copy the full error message and ask. Most issues are:
 1. Missing PHP extensions (`php-sqlite3`, `php-mbstring`, `php-xml`)
